@@ -42,7 +42,7 @@ def parse_serial_input(sentence: str):
 def initialize(port):
     prom.start_http_server(9999)
     print("Open port")
-    serial = Serial(port=port, baudrate=9600)
+    serial = Serial(port=port, baudrate=115200)
     time.sleep(2)
     while True:
         # Check if new data on serial
