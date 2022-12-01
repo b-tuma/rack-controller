@@ -37,7 +37,7 @@ def parse_serial_input(sentence: str):
             temperature_gauge.labels(sensor_id=nmea_pieces[1]).set(float(nmea_pieces[2]))
             humidity_gauge.labels(sensor_id=nmea_pieces[1]).set(float(nmea_pieces[3]))
     else:
-        print("Received Message: " + nmea_pieces)
+        print("Received Message: " + str(nmea_pieces))
 
 def fan_control(task):
     identifier = task['identifier']
