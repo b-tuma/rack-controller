@@ -29,9 +29,6 @@ def validate_nmea(sentence: str):
         return ""
 
 
-def run_task(task_json):
-    task_action = task_json['action']
-    print("Starting Task: " + task_action)
 
 def parse_serial_input(sentence: str):
     nmea_pieces = sentence.split(',')
@@ -55,5 +52,15 @@ def initialize(port):
         # Check if new task is available
         queued_task = redis.lpop("queue:tasks")
         if queued_task is not None:
-            run_task(json.loads(queued_task))
+            task_json = json.loads(queued_task)
+            task_device = task_json['device']
+            if task_device == 'fan':
+                identifier = task_json['identifier']
+                speed = task_json['speed']
+                default = bool(task_json['default'])
+                nmea_message = f"FAN,{'CONFIG' if default else 'SET'},{str(identifier)},{str(speed)}"
+                full_message = f"${nmea_message}*{nmea_checksum(nmea_message)}\n"
+                serial.write(full_message.encode('ascii'))
+
+
         time.sleep(0.01)
