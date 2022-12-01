@@ -128,8 +128,8 @@ def set_sensor():
     response.update({"task": task})
     return response, 200
 
-@app.route('/controller', methods=['POST'])
-def set_controller():
+@app.route('/board', methods=['POST'])
+def set_board():
     restart = request.args.get('restart')
     factory_reset = request.args.get('factory')
 
@@ -145,7 +145,7 @@ def set_controller():
         response.update({"errors": errors})
         return response, 400
 
-    task = {"device": "controller",
+    task = {"device": "board",
             "restart": restart is not None,
             "factory": factory_reset is not None}
 

@@ -28,8 +28,6 @@ def validate_nmea(sentence: str):
     except:
         return ""
 
-
-
 def parse_serial_input(sentence: str):
     nmea_pieces = sentence.split(',')
     if nmea_pieces[0] == 'SENSOR':
@@ -37,14 +35,64 @@ def parse_serial_input(sentence: str):
             temperature_gauge.labels(sensor_id=nmea_pieces[1]).set(float(nmea_pieces[2]))
             humidity_gauge.labels(sensor_id=nmea_pieces[1]).set(float(nmea_pieces[3]))
     else:
-        print(nmea_pieces)
+        print("Received Message: " + nmea_pieces)
+
+def fan_control(task):
+    identifier = task['identifier']
+    speed = task['speed']
+    default = bool(task['default'])
+
+    nmea_message = f"FAN,{'CONFIG' if default else 'SET'},{str(identifier)},{str(speed)}"
+    full_message = f"${nmea_message}*{nmea_checksum(nmea_message)}\r\n"
+    return full_message
+
+def servo_control(task):
+    identifier = task['identifier']
+    position = task['position']
+    minimum = task['minimum']
+    maximum = task['maximum']
+    default = bool(task['default'])
+
+    nmea_message = None
+    if default:
+        if position is not None and minimum is not None and maximum is not None:
+            nmea_message = f"SERVO,CONFIG,{str(identifier)},{str(position)},{str(minimum)},{str(maximum)}"
+    else:
+        if position is not None:
+            nmea_message = f"SERVO,SET,{str(identifier)},{str(position)}"
+    if nmea_message is None:
+        return None
+
+    full_message = f"${nmea_message}*{nmea_checksum(nmea_message)}\r\n"
+    return full_message
+
+def sensor_control(task):
+    identifier = task['identifier']
+    enable = int(task['enable'])
+    default = bool(task['default'])
+    if not default:
+        return None
+    
+    nmea_message = f"SENSOR,CONFIG,{str(identifier)},{str(enable)}"
+    full_message = f"${nmea_message}*{nmea_checksum(nmea_message)}\r\n"
+    return full_message
+
+def board_control(task):
+    factory_reset = bool(task['factory'])
+    restart = bool(task['restart'])
+    if factory_reset:
+        nmea_message = "CONTROLLER,FACTORY"
+    elif restart:
+        nmea_message = "CONTROLLER,RESTART"
+    full_message = f"${nmea_message}*{nmea_checksum(nmea_message)}\r\n"
+    return full_message
 
 def initialize(port):
     prom.start_http_server(9999)
-    print("Open port")
+    print("Opening serial port...")
     serial = Serial(port=port, baudrate=115200)
     time.sleep(2)
-    while True:
+    while serial.is_open:
         # Check if new data on serial
         if(serial.in_waiting > 0):
             data_str = validate_nmea(str(serial.readline(), 'ascii'))
@@ -56,13 +104,20 @@ def initialize(port):
         if queued_task is not None:
             task_json = json.loads(queued_task)
             task_device = task_json['device']
-            if task_device == 'fan':
-                identifier = task_json['identifier']
-                speed = task_json['speed']
-                default = bool(task_json['default'])
-                nmea_message = f"FAN,{'CONFIG' if default else 'SET'},{str(identifier)},{str(speed)}"
-                full_message = f"${nmea_message}*{nmea_checksum(nmea_message)}\r\n"
-                serial.write(full_message.encode('ascii'))
-
+            message = None
+            match task_device:
+                case 'fan':
+                    message = fan_control(task_json)
+                case 'servo':
+                    message = servo_control(task_json)
+                case 'sensor':
+                    message = sensor_control(task_json)
+                case 'board':
+                    message = board_control(task_json)
+                case _:
+                    print(f"Invalid device: {task_device}.")
+            if message is not None:
+                print("Send message: " + message)
+                serial.write(message.encode('ascii'))
 
         time.sleep(0.01)
