@@ -2,9 +2,9 @@ name: Docker Image CI
 
 on:
   push:
-    branches: [ "master" ]
+    branches: [ "main" ]
   pull_request:
-    branches: [ "master" ]
+    branches: [ "main" ]
 
 jobs:
   docker:
@@ -25,7 +25,7 @@ jobs:
             tags="${tags},ghcr.io/${{ github.repository }}:latest,\
                   ghcr.io/${{ github.repository }}:$(date '+%Y-%m-%d')"
           fi
-          echo "::set-output name=tags::${tags}"
+          echo "tags=${tags}" >> $GITHUB_OUTPUT
       - name: Checkout repository
         uses: actions/checkout@v3
 
@@ -38,7 +38,7 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v3
         with:
-          context: .
+          context: "{{defaultContext}}:app"
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           platforms: linux/amd64,linux/arm64,linux/arm/v7
