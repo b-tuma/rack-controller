@@ -5,10 +5,12 @@ import json
 import time
 from functools import reduce
 import operator
+from webapp import api
+import os
+import threading
 
-temperature_gauge = prom.Gauge('rack_sensor_temperature', 'Temperature from DHT22 sensors', ['sensor_id'])
-humidity_gauge = prom.Gauge('rack_sensor_humidity', 'Humidity from DHT22 sensors', ['sensor_id'])
-redis = Redis()
+port = os.getenv("SERIAL_DEV", "/dev/serial/by-id/usb-Teensyduino_USB_Serial_1327270-if00")
+baudrate = int(os.getenv("SERIAL_BAUD", "115200"))
 
 
 def nmea_checksum(sentence: str):
@@ -86,15 +88,33 @@ def board_control(task):
         nmea_message = "CONTROLLER,RESTART"
     full_message = f"${nmea_message}*{nmea_checksum(nmea_message)}\r\n"
     return full_message
+    
 
-def initialize(port):
+if __name__ == '__main__':
+    print("Starting up redis...")
+    os.system('service redis-server start')
+    time.sleep(2)
+    redis = Redis()
+    if not redis.ping():
+        raise Exception("Redis failed to start.")
+
+    print("Starting up metrics endpoint...")
+    temperature_gauge = prom.Gauge('rack_sensor_temperature', 'Temperature from DHT22 sensors', ['sensor_id'])
+    humidity_gauge = prom.Gauge('rack_sensor_humidity', 'Humidity from DHT22 sensors', ['sensor_id'])
     prom.start_http_server(9999)
-    print("Opening serial port...")
-    serial = Serial(port=port, baudrate=115200)
+    time.sleep(2)
+
+    print("Starting up Flask...")
+    flask_thread = threading.Thread(target=api.app.run, args=("0.0.0.0",))
+    flask_thread.start()
+    time.sleep(2)
+
+    print("Starting up serial port...")
+    serial = Serial(port=port, baudrate=baudrate)
     time.sleep(2)
     while serial.is_open:
         # Check if new data on serial
-        if(serial.in_waiting > 0):
+        while serial.in_waiting > 0:
             data_str = validate_nmea(str(serial.readline(), 'ascii'))
             if data_str != "":
                 parse_serial_input(data_str)
@@ -120,4 +140,4 @@ def initialize(port):
                 print("Send message: " + message)
                 serial.write(message.encode('ascii'))
 
-        time.sleep(0.01)
+        time.sleep(1)

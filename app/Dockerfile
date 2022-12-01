@@ -13,4 +13,4 @@ WORKDIR /app
 
 RUN pip install --upgrade pip && pip install --no-cache-dir -r requirements.txt
 
-CMD ["python", "/app/run.py"]
+CMD ["python", "/app/main.py"]
