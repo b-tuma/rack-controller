@@ -36,6 +36,8 @@ def parse_serial_input(sentence: str):
         if len(nmea_pieces) == 4:
             temperature_gauge.labels(sensor_id=nmea_pieces[1]).set(float(nmea_pieces[2]))
             humidity_gauge.labels(sensor_id=nmea_pieces[1]).set(float(nmea_pieces[3]))
+    else:
+        print(nmea_pieces)
 
 def initialize(port):
     prom.start_http_server(9999)
@@ -59,7 +61,7 @@ def initialize(port):
                 speed = task_json['speed']
                 default = bool(task_json['default'])
                 nmea_message = f"FAN,{'CONFIG' if default else 'SET'},{str(identifier)},{str(speed)}"
-                full_message = f"${nmea_message}*{nmea_checksum(nmea_message)}\n"
+                full_message = f"${nmea_message}*{nmea_checksum(nmea_message)}\r\n"
                 serial.write(full_message.encode('ascii'))
 
 
