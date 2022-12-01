@@ -20,10 +20,10 @@ jobs:
       - name: Get Tags
         id: meta
         run: |
-          tags="ghcr.io/${{ github.repository }}:edge,${{ github.repository }}:edge"
+          tags="ghcr.io/${{ github.repository }}:edge"
           if [[ $(date '+%d') == 01 || "${{ github.event_name }}" == "push" ]]; then
-            tags="${tags},ghcr.io/${{ github.repository }}:latest,${{ github.repository }}:latest,\
-                  ghcr.io/${{ github.repository }}:$(date '+%Y-%m-%d'),${{ github.repository }}:$(date '+%Y-%m-%d')"
+            tags="${tags},ghcr.io/${{ github.repository }}:latest,\
+                  ghcr.io/${{ github.repository }}:$(date '+%Y-%m-%d')"
           fi
           echo "::set-output name=tags::${tags}"
       - name: Checkout repository
