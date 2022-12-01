@@ -48,7 +48,7 @@ def initialize(port):
     while True:
         # Check if new data on serial
         if(serial.in_waiting > 0):
-            data_str = validate_nmea(serial.readline())
+            data_str = validate_nmea(str(serial.readline(), 'ascii'))
             if data_str != "":
                 parse_serial_input(data_str)
 
