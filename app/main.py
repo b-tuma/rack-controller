@@ -50,18 +50,15 @@ def fan_control(task):
 
 def servo_control(task):
     identifier = task['identifier']
-    position = task['position']
-    minimum = task['minimum']
-    maximum = task['maximum']
     default = bool(task['default'])
 
     nmea_message = None
     if default:
-        if position is not None and minimum is not None and maximum is not None:
-            nmea_message = f"SERVO,CONFIG,{str(identifier)},{str(position)},{str(minimum)},{str(maximum)}"
+        if 'position' in task and 'minimum' in task and 'maximum' in task:
+            nmea_message = f"SERVO,CONFIG,{str(identifier)},{str(task['position'])},{str(task['minimum'])},{str(task['maximum'])}"
     else:
-        if position is not None:
-            nmea_message = f"SERVO,SET,{str(identifier)},{str(position)}"
+        if 'position' in task:
+            nmea_message = f"SERVO,SET,{str(identifier)},{str(task['position'])}"
     if nmea_message is None:
         return None
 
